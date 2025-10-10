@@ -2,6 +2,7 @@ package dw.tarefas.control;
 
 import dw.tarefas.model.Tarefa;
 import dw.tarefas.repository.TarefaRepository;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,15 +31,15 @@ public class TarefaController {
             if (lista.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            return new ResponseEntity<>(lista, HttpStatus.OK);
 
+            return new ResponseEntity<>(lista, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @PostMapping("/")
-    public ResponseEntity<Tarefa> createTarefa(@RequestBody Tarefa ta) {
+    public ResponseEntity<Tarefa> createTarefa(@Valid @RequestBody Tarefa ta) {
         try {
             Tarefa t = rep.save(new Tarefa(ta.getDescricao(), ta.getPrioridade(), ta.isConcluida()));
             return new ResponseEntity<>(t, HttpStatus.CREATED);
@@ -49,32 +50,40 @@ public class TarefaController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Tarefa> getTarefaById(@PathVariable("id") long id){
-        Optional<Tarefa> data = rep.findById(id);
+        try{
+            Optional<Tarefa> data = rep.findById(id);
 
-        if(data.isPresent()){
-            return new ResponseEntity<>(data.get(), HttpStatus.OK);
-        }else{
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            if(data.isPresent()){
+                return new ResponseEntity<>(data.get(), HttpStatus.OK);
+            }else{
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
+
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Tarefa> updateTarefa(@PathVariable("id") Long id, @RequestBody Tarefa t){
+    public ResponseEntity<Tarefa> updateTarefa(@PathVariable("id") Long id, @Valid @RequestBody Tarefa t){
+        try {
+            Optional<Tarefa> data = rep.findById(id);
 
-        Optional<Tarefa> data = rep.findById(id);
+            if(data.isPresent()){
 
-        if(data.isPresent()){
+                Tarefa ta = data.get();
+                ta.setConcluida(t.isConcluida());
+                ta.setDescricao(t.getDescricao());
+                ta.setPrioridade(t.getPrioridade());
 
-            Tarefa ta = data.get();
-            ta.setConcluida(t.isConcluida());
-            ta.setDescricao(t.getDescricao());
-            ta.setPrioridade(t.getPrioridade());
+                return new ResponseEntity<>(rep.save(ta), HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
 
-            return new ResponseEntity<>(rep.save(ta), HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
     }
 
     @DeleteMapping("/{id}")
@@ -83,10 +92,8 @@ public class TarefaController {
             rep.deleteById(id);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (Exception e){
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
-
     }
 
     @GetMapping("/pendentes")
@@ -107,13 +114,18 @@ public class TarefaController {
 
     @PatchMapping("/{id}/concluir")
     public ResponseEntity<Tarefa> concluirTarefa(@PathVariable("id") Long id){
-        Optional<Tarefa> data = rep.findById(id);
-        if(data.isPresent()){
-            Tarefa t = data.get();
-            t.setConcluida(true);
-            return updateTarefa(id, t);
-        } else{
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        try {
+            Optional<Tarefa> data = rep.findById(id);
+            if(data.isPresent()){
+                Tarefa t = data.get();
+                t.setConcluida(true);
+                return updateTarefa(id, t);
+            } else{
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        }catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
+
     }
 }
